@@ -64,64 +64,76 @@ class RandomWalk(Node):
             else:
             	self.scan_cleaned.append(reading)
 
+
+
     def listener_callback2(self, msg2):
         position = msg2.pose.pose.position
-        self.get_logger().info('Position: x={}, y={}, z={}'.format(position.x, position.y, position.z))
-
-        # Stall detection logic based on change in position
-        if self.previous_position is not None:
-            diff_x = abs(self.previous_position.x - position.x)
-            diff_y = abs(self.previous_position.y - position.y)
-            if diff_x < 0.0001 and diff_y < 0.0001:
-                self.stall = True
-            else:
-                self.stall = False
-
-        self.previous_position = position  # update position
+        orientation = msg2.pose.pose.orientation
+        (posx, posy, posz) = (position.x, position.y, position.z)
+        (qx, qy, qz, qw) = (orientation.x, orientation.y, orientation.z, orientation.w)
+        self.get_logger().info('self position: {},{},{}'.format(posx,posy,posz));
+        # similarly for twist message if you need
+        self.pose_saved=position
         
-
+        #Example of how to identify a stall..need better tuned position deltas; wheels spin and example fast
+        #diffX = math.fabs(self.pose_saved.x- position.x)
+        #diffY = math.fabs(self.pose_saved.y - position.y)
+        #if (diffX < 0.0001 and diffY < 0.0001):
+           #self.stall = True
+        #else:
+           #self.stall = False
+           
+        return None
+        
     def timer_callback(self):
-        if not self.scan_cleaned:
-            self.turtlebot_moving = False
-            return
-
+        if (len(self.scan_cleaned)==0):
+    	    self.turtlebot_moving = False
+    	    return
+    	    
+        #left_lidar_samples = self.scan_cleaned[LEFT_SIDE_INDEX:LEFT_FRONT_INDEX]
+        #right_lidar_samples = self.scan_cleaned[RIGHT_FRONT_INDEX:RIGHT_SIDE_INDEX]
+        #front_lidar_samples = self.scan_cleaned[LEFT_FRONT_INDEX:RIGHT_FRONT_INDEX]
+        
         left_lidar_min = min(self.scan_cleaned[LEFT_SIDE_INDEX:LEFT_FRONT_INDEX])
         right_lidar_min = min(self.scan_cleaned[RIGHT_FRONT_INDEX:RIGHT_SIDE_INDEX])
         front_lidar_min = min(self.scan_cleaned[LEFT_FRONT_INDEX:RIGHT_FRONT_INDEX])
 
-        # Stop if there is an obstacle directly in front
+        #self.get_logger().info('left scan slice: "%s"'%  min(left_lidar_samples))
+        #self.get_logger().info('front scan slice: "%s"'%  min(front_lidar_samples))
+        #self.get_logger().info('right scan slice: "%s"'%  min(right_lidar_samples))
+
         if front_lidar_min < SAFE_STOP_DISTANCE:
-            if self.turtlebot_moving:
-                self.cmd.linear.x = 0.0
-                self.cmd.angular.z = 0.0
+            if self.turtlebot_moving == True:
+                self.cmd.linear.x = 0.0 
+                self.cmd.angular.z = 0.0 
                 self.publisher_.publish(self.cmd)
                 self.turtlebot_moving = False
                 self.get_logger().info('Stopping')
                 return
-
-        # Avoidance behavior if there is an obstacle within avoid distance
         elif front_lidar_min < LIDAR_AVOID_DISTANCE:
-            self.cmd.linear.x = 0.07
-            if right_lidar_min > left_lidar_min:
-                self.cmd.angular.z = -0.3
-            else:
-                self.cmd.angular.z = 0.3
-            self.publisher_.publish(self.cmd)
-            self.get_logger().info('Turning')
-            self.turtlebot_moving = True
+                self.cmd.linear.x = 0.07 
+                if (right_lidar_min > left_lidar_min):
+                   self.cmd.angular.z = -0.3
+                else:
+                   self.cmd.angular.z = 0.3
+                self.publisher_.publish(self.cmd)
+                self.get_logger().info('Turning')
+                self.turtlebot_moving = True
         else:
-            # Move forward if no obstacle is near
             self.cmd.linear.x = 0.3
-            self.cmd.angular.z = 0.0
+            self.cmd.linear.z = 0.0
             self.publisher_.publish(self.cmd)
             self.turtlebot_moving = True
+            
 
-        self.get_logger().info('Distance to obstacle: {:.2f}'.format(front_lidar_min))
-
-        if self.stall:
-            self.get_logger().info('Stall detected')
-
-        self.get_logger().info('Publishing: {}'.format(self.cmd))
+        self.get_logger().info('Distance of the obstacle : %f' % front_lidar_min)
+        self.get_logger().info('I receive: "%s"' %
+                               str(self.odom_data))
+        if self.stall == True:
+           self.get_logger().info('Stall reported')
+        
+        # Display the message on the console
+        self.get_logger().info('Publishing: "%s"' % self.cmd)
  
 
 
