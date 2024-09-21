@@ -33,6 +33,10 @@ class WallFollower(Node):
             '/odom',
             self.listener_callback2,
             QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT))
+        
+        # Initialize distance tracking variables
+        self.previous_position = None  # Stores the previous odometry position (x, y)
+        self.total_distance_traveled = 0.0  # Keeps track of the total distance
         self.cmd = Twist()
         self.following_wall = False
         self.timer = self.create_timer(0.5, self.timer_callback)
@@ -50,45 +54,58 @@ class WallFollower(Node):
                 self.scan_cleaned.append(reading)
 
     def listener_callback2(self, msg2):
-        pass  # Position tracking is removed as it is not relevant for this task.
+        # Get the current position of the robot
+        current_position = msg2.pose.pose.position
+        
+        # If we have a previous position, calculate the distance traveled
+        if self.previous_position is not None:
+            distance = self.calculate_distance(self.previous_position, current_position)
+            self.total_distance_traveled += distance
+        
+        # Update the previous position with the current position
+        self.previous_position = current_position
+
+        # Log the total distance traveled
+        self.get_logger().info(f'Total distance traveled: {self.total_distance_traveled:.2f} meters')
+
+    def calculate_distance(self, previous_position, current_position):
+        """Calculates the Euclidean distance between two positions."""
+        delta_x = current_position.x - previous_position.x
+        delta_y = current_position.y - previous_position.y
+        distance = math.sqrt(delta_x**2 + delta_y**2)
+        return distance
 
     def timer_callback(self):
         if len(self.scan_cleaned) == 0:
             self.turtlebot_moving = False
             return
 
-        # Find the minimum distances in the relevant LIDAR slices
         left_lidar_min = min(self.scan_cleaned[LEFT_SIDE_INDEX:LEFT_FRONT_INDEX])
         right_lidar_min = min(self.scan_cleaned[RIGHT_FRONT_INDEX:RIGHT_SIDE_INDEX])
         front_lidar_min = min(self.scan_cleaned[LEFT_FRONT_INDEX:RIGHT_FRONT_INDEX])
 
-        # Obstacle in front, initiate wall following
         if front_lidar_min < SAFE_STOP_DISTANCE:
-            self.cmd.linear.x = 0.0  # Stop moving forward
-            self.cmd.angular.z = 0.3  # Turn left to start following the wall
+            self.cmd.linear.x = 0.0
+            self.cmd.angular.z = 0.3
             self.following_wall = True
             self.publisher_.publish(self.cmd)
             self.get_logger().info('Obstacle detected, initiating wall following')
 
-        # Continue wall following if the robot is avoiding an obstacle
         elif self.following_wall:
             if front_lidar_min >= LIDAR_AVOID_DISTANCE:
-                # No obstacle in front, stop wall following
                 self.following_wall = False
             else:
-                # Adjust to follow the wall
-                self.cmd.linear.x = 0.07  # Move forward slowly
+                self.cmd.linear.x = 0.07
                 if right_lidar_min > left_lidar_min:
-                    self.cmd.angular.z = -0.3  # Turn slightly right
+                    self.cmd.angular.z = -0.3
                 else:
-                    self.cmd.angular.z = 0.3  # Turn slightly left
+                    self.cmd.angular.z = 0.3
                 self.publisher_.publish(self.cmd)
                 self.get_logger().info('Following the wall to avoid obstacle')
 
-        # No obstacles, continue moving forward
         else:
-            self.cmd.linear.x = 0.3  # Move forward
-            self.cmd.angular.z = 0.0  # Move straight
+            self.cmd.linear.x = 0.3
+            self.cmd.angular.z = 0.0
             self.publisher_.publish(self.cmd)
             self.get_logger().info('Path is clear, moving forward')
 
