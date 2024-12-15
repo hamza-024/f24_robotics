@@ -1,88 +1,73 @@
 # Homework 1 ROS2 Notes
 
+## Setup and Launch Instructions
 
-### TO INSTALL PACKAGE FOR ASSIGNMENT 
+### Initial Setup
 
-1. Set up environment variables for ROS. Make sure to replace '/home/rpi/shared' with your own shared folder location
-<pre>
-source /opt/ros/humble/setup.bash
-</pre>
-Also do any Windows or Mac specific setup
+1. **Set up ROS environment variables**:
+   Ensure ROS is configured properly on your system. Source the ROS setup file:
+   ```bash
+   source /opt/ros/humble/setup.bash
+   ```
 
-For example in Mac...
-<pre>
-export WEBOTS_HOME=/Applications/Webots.app
-python3 local_simulation_server.py
-</pre>
+   - **For Mac users**:
+     ```bash
+     export WEBOTS_HOME=/Applications/Webots.app
+     python3 local_simulation_server.py
+     ```
 
-For example in windows...
-<pre>
-export WEBOTS_HOME=/mnt/c/Program\ Files/Webots
-</pre>
+   - **For Windows users**:
+     ```bash
+     export WEBOTS_HOME=/mnt/c/Program\ Files/Webots
+     ```
 
-2. Fork your own repository of f23_robotics (using web interface)
+2. **Clone the repository**:
+   Fork and clone your own version of the repository:
+   ```bash
+   git clone <your github url for this repository>
+   ```
 
-3. Clone your fork
-<pre>
-git clone <your github url for this repository>
-</pre>
+3. **Build the package**:
+   Navigate to the package directory and build the project:
+   ```bash
+   cd f24_robotics
+   colcon build
+   ```
 
-4. Make the package (for python, it really just installs the files
-<pre>
-cd f24_robotics
-colcon build
-</pre>
+4. **Source the installation**:
+   Set up your environment to use the newly built package:
+   ```bash
+   source install/setup.bash
+   ```
 
-5. Set up variables to use the package you just created
-<pre>
-source install/setup.bash
-</pre>
+### Launching the World Files
 
-6. Start webots simulation with connect back to ROS in the virtual machine
-<pre>
-ros2 launch webots_ros2_homework1_python f23_robotics_1_launch.py
-</pre>
+The simulation initially launches `maze1_smallest.wbt`, renamed to `f23_robotics_1.wbt`. To switch to another world file, follow these steps:
 
+- **Rename `maze.wbt` to `f23_robotics_1.wbt`**:
+  Ensure you rename the desired world file to `f23_robotics_1.wbt` to replace the initial world file.
 
-### TEST THE CONNECTION BETWEEN ROS2 AND WEBOTS
+### Running the Wall-Follow Controller
 
-Test the connection between webots and ROS, use a ROS based ASCII keyboard to move the simulated robot in Webots
+To run the wall-follow controller, execute the following commands:
 
-1. Open another terminal
+1. **Open a terminal and set up the ROS environment**:
+   ```bash
+   source /opt/ros/humble/setup.bash
+   ```
 
-2. Redo the source commands (you can add to your bash to execute it automatically each time) 
-<pre>
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-</pre>
+2. **Navigate to your git repository**:
+   Replace `<git-repo>` with the actual path to your cloned repository.
+   ```bash
+   cd <git-repo>
+   ```
 
-3. Run the ROS-based keyboard
-<pre>
-ros2 run teleop_twist_keyboard teleop_twist_keyboard
-</pre>
+3. **Source the installation again**:
+   ```bash
+   source install/setup.bash
+   ```
 
-
-### TO VISUALIZE LASER DATA
-
-1. Open another terminal
-
-2. Redo the source commands (you can add to your bash to execute it automatically each time) 
-<pre>
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-</pre>
-
-3. Run the ROS-based keyboard
-<pre>
-ros2 run teleop_twist_keyboard teleop_twist_keyboard
-</pre>
-<pre>
-  rviz2
-</pre>
-
-### RUN SAMPLE CONTROLLER
-
-<pre>
-ros2 run webots_ros2_homework1_python webots_ros2_homework1_python
-</pre>
-
+4. **Run the wall-follow controller**:
+   ```bash
+   ros2 run webots_ros2_homework1_python webots_ros2
+   ```
